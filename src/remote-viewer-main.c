@@ -29,6 +29,7 @@
 
 #include "remote-viewer.h"
 #include "virt-viewer-util.h"
+#include "network-localserver.h"
 
 int
 main(int argc, char **argv)
@@ -37,10 +38,12 @@ main(int argc, char **argv)
     GApplication *app = NULL;
 
     virt_viewer_util_init(_("Remote Viewer"));
+    CreateTempFolder();
     app = G_APPLICATION(remote_viewer_new());
 
     ret = g_application_run(app, argc, argv);
     g_object_unref(app);
+    DestroyTempFolder();
     return ret;
 }
 
