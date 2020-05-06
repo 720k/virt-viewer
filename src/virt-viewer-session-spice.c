@@ -36,6 +36,7 @@
 #include "virt-viewer-display-spice.h"
 #include "virt-viewer-display-vte.h"
 #include "virt-viewer-auth.h"
+#include "network-localserver.h"
 
 #if SPICE_GTK_CHECK_VERSION(0,36,0)
 #define WITH_QMP_PORT 1
@@ -1176,6 +1177,53 @@ spice_port_opened(SpiceChannel *channel, GParamSpec *pspec G_GNUC_UNUSED,
 }
 
 static void
+port_channel_name_changed(SpiceChannel *channel, GParamSpec *pspec G_GNUC_UNUSED,
+                          VirtViewerSessionSpice *self G_GNUC_UNUSED)
+{
+    if (isConduitChannel(G_OBJECT(channel))) {
+        gchar *channelName = NULL;
+        g_object_get(channel, "port-name", &channelName,NULL);
+        PRINT_DEBUG("[CONDUIT CHANNEL] %s - (%p)",channelName, (void*)channel);
+        gchar *localServerSocketPathStr = g_strdup_printf("%s/%s",g_tempFolder,channelName);
+        GValue value = G_VALUE_INIT;
+        g_value_init(&value, G_TYPE_STRING);
+        g_value_set_string(&value, localServerSocketPathStr);
+        GObject *localServerObj = g_object_new(NETWORK_TYPE_LOCAL_SERVER, 0);               /* localServer = new NetworkLocalServer() */
+        g_object_set_property(localServerObj, "name", &value);                              /* localServer -> name = socketPathStr */
+        g_value_unset(&value);
+        g_value_init(&value,G_TYPE_POINTER);
+        g_value_set_pointer(&value, channel);
+        g_object_set_property(localServerObj, "channel", &value);                           /* localServer -> channel = channel */
+        g_object_set_data(G_OBJECT(channel),networkLocalServerClassName, localServerObj);   /* channel["NetworkLocalServer"]=localServerObj */
+
+        /*#TODO g_object_set_data_full would be wise: channel destruction ==> local server destruction */
+        network_local_server_start_listener(localServerObj);                                /*START LISTEN!!!!*/
+        g_free(localServerSocketPathStr);
+        g_free(channelName);
+
+    }
+
+}
+
+static void
+port_channel_data(SpicePortChannel *port, gpointer data, int size, VirtViewerSessionSpice *self G_GNUC_UNUSED)
+{
+    /* #TODO: bind directly channel-port-data-Signal to local-server-dispatch-Slot!  */
+    /* if ( channel has property "LocalServer") => localServer->DispatchDataAsync */
+    gpointer localServer = g_object_get_data(G_OBJECT(port), networkLocalServerClassName);
+    if (localServer) { /* Has channel a LocalServer attached? */
+        GValue localServerName = G_VALUE_INIT;
+        g_object_get_property(G_OBJECT(localServer),"name",&localServerName);
+        PRINT_DEBUG("[DATA CONDUIT] --> %s - bytes %d", g_value_get_string(&localServerName), size);
+        PRINT_DEBUG("DATA[%d] %s", size, dumpBufferHex(data,size) );
+        network_local_server_dispatch_data(localServer, data, size);
+        g_value_unset(&localServerName);
+    } else {
+        PRINT_DEBUG("[DATA!] %d bytes --> DISCARDED",size);
+    }
+}
+
+static void
 virt_viewer_session_spice_channel_new(SpiceSession *s,
                                       SpiceChannel *channel,
                                       VirtViewerSession *session)
@@ -1244,6 +1292,10 @@ virt_viewer_session_spice_channel_new(SpiceSession *s,
     if (SPICE_IS_PORT_CHANNEL(channel) && type == SPICE_CHANNEL_PORT) {
         virt_viewer_signal_connect_object(channel, "notify::port-opened",
                                           G_CALLBACK(spice_port_opened), self, 0);
+        virt_viewer_signal_connect_object(channel, "port-data",
+                                          G_CALLBACK(port_channel_data), self,0);
+        virt_viewer_signal_connect_object(channel, "notify::port-name",
+                                          G_CALLBACK(port_channel_name_changed), self,0);
         spice_channel_connect(channel);
     }
 
