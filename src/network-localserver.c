@@ -9,8 +9,8 @@
 
 #define NETWORK_LOCAL_SERVER_BUFFER_SIZE    G_MAXUINT16
 /* <GLOBAL> */
-gchar *networkLocalServerClassName="NetworkLocalServer";
-gchar *conduitStartPrefix="io.";
+const gchar *networkLocalServerClassName="NetworkLocalServer";
+const gchar *conduitStartPrefix="io.";
 gchar *g_tempFolder=NULL;
 /* </GLOBAL> */
 #define CLIENT_READBUFFER_SIZE 64*1024
@@ -177,6 +177,7 @@ void clientDelete(GObject *networkLocalServerObject)   {
     p->client.readBuffer =NULL;
 }
 void conduitWriteDataFinished_cb(GObject *sender, GAsyncResult *res, gpointer networkLocalServerObject) {
+    UNUSED(sender);
     NetworkLocalServerPrivate *p = NETWORK_LOCAL_SERVER(networkLocalServerObject)->priv;
     GError *error = NULL;
     gssize size = spice_port_channel_write_finish(p->portChannel, res, &error);
@@ -263,6 +264,8 @@ void clientNewFromConnection(GObject *networkLocalServerObject, GSocketConnectio
 }
 
 gboolean newClientConnection_cb(GSocketService *service, GSocketConnection *clientConnection, GObject *src_object, gpointer networkLocalServerObject)   {
+    UNUSED(service);
+    UNUSED(src_object);
     NetworkLocalServerPrivate *p = NETWORK_LOCAL_SERVER(networkLocalServerObject)->priv;
     PRINT_DEBUG("[INCOMING] new connection request to %s",p->name);
     if (p->hasClient) { /*  onReturn connection will be unRef'd and so detroyed */
@@ -274,11 +277,14 @@ gboolean newClientConnection_cb(GSocketService *service, GSocketConnection *clie
 }
 
 void clientWriteDataFinished_cb(GObject *sender, GAsyncResult *res, gpointer user_data) {
+    UNUSED(sender);
     NetworkLocalServerPrivate *p = NETWORK_LOCAL_SERVER(user_data)->priv;
     GError *error = NULL;
     gsize bytesWritten;
     /*you can use G_OUTPUT_STREAM (sender)*/
+    G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     gboolean success = g_output_stream_write_all_finish(p->client.outputStream, res, &bytesWritten, &error);
+    G_GNUC_END_IGNORE_DEPRECATIONS
     if (!success) {
         PRINT_DEBUG("[ERROR] %s | writing Client data (%s)",p->name, error->message);
         g_error_free(error);
@@ -292,7 +298,9 @@ void        network_local_server_dispatch_data(GObject *networkLocalServerObject
         PRINT_DEBUG("[LOCALSERVER] %s no client to dispatch data",p->name);
         return;
     }
+    G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     g_output_stream_write_all_async(p->client.outputStream, buffer, bufferSize, G_PRIORITY_DEFAULT, 0, clientWriteDataFinished_cb, networkLocalServerObject);
+    G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 /*  */

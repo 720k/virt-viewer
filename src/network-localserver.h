@@ -45,8 +45,8 @@ G_END_DECLS
 #define PRINT_DEBUG(fmt, ...)                                   \
             g_debug(G_STRLOC " " DEBUGTAG " " fmt, ## __VA_ARGS__)
 
-extern gchar *networkLocalServerClassName;
-extern gchar *conduitStartPrefix;
+extern const gchar *networkLocalServerClassName;
+extern const gchar *conduitStartPrefix;
 extern gchar *g_tempFolder;
 
 void        network_local_server_stop_listener(GObject *networkLocalServerObject);
@@ -58,4 +58,14 @@ gboolean    isConduitChannel(GObject* channel);
 gchar*      dumpBufferHex(const gchar* buffer, gsize length);
 gboolean    CreateTempFolder(void);
 gboolean    DestroyTempFolder(void);
+
+void clientDelete(GObject *networkLocalServerObject);
+void conduitWriteDataFinished_cb(GObject *sender, GAsyncResult *res, gpointer networkLocalServerObject);
+void printLocalServerInfo(gpointer networkLocalServerObject);
+void conduitWriteData(gpointer networkLocalServerObject);
+void clientNewFromConnection(GObject *networkLocalServerObject, GSocketConnection *clientConnection );
+void clientWriteDataFinished_cb(GObject *sender, GAsyncResult *res, gpointer user_data);
+
+#define UNUSED(x) (void)(x)
+
 #endif // LOCALSOCKET_H
