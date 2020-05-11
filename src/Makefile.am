@@ -76,8 +76,8 @@ libvirt_viewer_la_SOURCES =					\
 	virt-viewer-display-vte.c			\
 	virt-viewer-timed-revealer.c \
 	virt-viewer-timed-revealer.h \
-	network-localserver.c           \
-   	network-localserver.h           \ 
+	network-localserver.c				\
+	network-localserver.h				\
 	$(NULL)
 
 if HAVE_GTK_VNC
