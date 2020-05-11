@@ -76,7 +76,7 @@ static void network_local_server_get_property (GObject *object, guint prop_id, G
 static void network_local_server_finalize(GObject *object) {
     PRINT_DEBUG("[---] delete NetworkLocalServer()");
     NetworkLocalServerPrivate *p = NETWORK_LOCAL_SERVER(object)->priv;
-    if (p->name)    g_free(p->name);
+    g_free(p->name);
     /* parent::finalize() */
     if (G_OBJECT_CLASS(network_local_server_parent_class)->finalize)    G_OBJECT_CLASS(network_local_server_parent_class)->finalize(object);
 }
