@@ -1,3 +1,4 @@
+#include <config.h>
 #include <glib.h>
 #include <gio/gio.h>
 #include "network-localserver.h"
@@ -86,7 +87,7 @@ static void network_local_server_set_property (GObject *object, guint prop_id, c
     NetworkLocalServerPrivate *p = NETWORK_LOCAL_SERVER(object)->priv;
     switch (prop_id)  {
         case PROP_NAME:
-            if (p->name)    g_free(p->name);
+            g_free(p->name);
             p->name = g_strdup(g_value_get_string(value));
             break;
         case PROP_CHANNEL:
